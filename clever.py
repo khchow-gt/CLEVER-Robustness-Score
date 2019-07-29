@@ -166,8 +166,7 @@ def parse_filename(filename):
     true_label = int(name_arr[3])
     target_label = int(name_arr[4])
     image_info = name_arr[5]
-    activation = name_arr[6]
-    return Nsamp, Niters, sample_id, true_label, target_label, image_info, activation
+    return Nsamp, Niters, sample_id, true_label, target_label, image_info
 
 
 if __name__ == "__main__":
@@ -233,7 +232,7 @@ if __name__ == "__main__":
                   "top2": [[], [], []]}
 
     for fname in file_list:
-        nsamps, niters, sample_id, true_label, target_label, img_info, activation = parse_filename(fname)
+        nsamps, niters, sample_id, true_label, target_label, img_info = parse_filename(fname)
 
         # keys in mat:
         # ['Li_max', 'pred', 'G1_max', 'g_x0', 'path', 'info', 'G2_max', 'true_label', 'args', 'L1_max', 'Gi_max',

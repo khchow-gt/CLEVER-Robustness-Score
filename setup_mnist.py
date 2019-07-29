@@ -182,34 +182,75 @@ class MNISTModel:
     def predict(self, data):
         return self.model(data)
 
+class MNISTModelDAE:
+    def __init__(self, restore_dae=None, restore_clf=None, session=None, use_softmax=False, activation="relu"):
 
-class TwoLayerMNISTModel:
-    def __init__(self, restore=None, session=None, use_softmax=False):
+        print("inside MNISTModelDAE: activation = {}".format(activation))
+
         self.num_channels = 1
         self.image_size = 28
         self.num_labels = 10
 
-        model = Sequential()
-        model.add(Flatten(input_shape=(28, 28, 1)))
-        model.add(Dense(1024))
-        model.add(Lambda(lambda x: x * 10))
-        model.add(Activation('softplus'))
-        model.add(Lambda(lambda x: x * 0.1))
-        model.add(Dense(10))
+        model1 = Sequential()
+
+        model1.add(Lambda(lambda x_: x_ + 0.5, input_shape=(28, 28, 1)))
+
+        # Encoder
+        model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+        model1.add(AveragePooling2D((2, 2), padding="same"))
+        model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+
+        # Decoder
+        model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+        model1.add(UpSampling2D((2, 2)))
+        model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+        model1.add(Conv2D(1, (3, 3), activation='sigmoid', padding='same', activity_regularizer=regs.l2(1e-9)))
+
+        model1.add(Lambda(lambda x_: x_ - 0.5))
+
+        model1.load_weights(restore_dae)
+        model1.compile(loss='mean_squared_error', metrics=['mean_squared_error'], optimizer='adam')
+
+
+        model2 = Sequential()
+
+        model2.add(Conv2D(32, (3, 3), input_shape=(28, 28, 1)))
+        model2.add(Activation(activation))
+        model2.add(Conv2D(32, (3, 3)))
+        model2.add(Activation(activation))
+        model2.add(MaxPooling2D(pool_size=(2, 2)))
+
+        model2.add(Conv2D(64, (3, 3)))
+        model2.add(Activation(activation))
+        model2.add(Conv2D(64, (3, 3)))
+        model2.add(Activation(activation))
+        model2.add(MaxPooling2D(pool_size=(2, 2)))
+
+        model2.add(Flatten())
+        model2.add(Dense(200))
+        model2.add(Activation(activation))
+        model2.add(Dense(200))
+        model2.add(Activation(activation))
+        model2.add(Dense(10))
         # output log probability, used for black-box attack
         if use_softmax:
-            model.add(Activation('softmax'))
+            model2.add(Activation('softmax'))
         if restore:
-            model.load_weights(restore)
+            model2.load_weights(restore_clf)
 
         layer_outputs = []
-        for layer in model.layers:
+        for layer in model1.layers:
             if isinstance(layer, Conv2D) or isinstance(layer, Dense):
-                layer_outputs.append(K.function([model.layers[0].input], [layer.output]))
+                layer_outputs.append(K.function([model1.layers[0].input], [layer.output]))
+        for layer in model2.layers:
+            if isinstance(layer, Conv2D) or isinstance(layer, Dense):
+                layer_outputs.append(K.function([model2.layers[0].input], [layer.output]))
 
-        self.layer_outputs = layer_outputs
+        model = Sequential()
+        model.add(model1)
+        model.add(model2)
         self.model = model
+        self.layer_outputs = layer_outputs
 
     def predict(self, data):
-
         return self.model(data)

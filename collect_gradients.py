@@ -19,7 +19,10 @@ import random
 import time
 import sys
 import os
+import tensorflow as tf
 
+from setup_cifar import CIFAR
+from setup_mnist import MNIST
 from estimate_gradient_norm import EstimateLipschitz
 from utils import generate_data
 
@@ -32,12 +35,9 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", choices=["mnist", "cifar"], default="mnist",
                         help="choose dataset")
     parser.add_argument("-m", "--model_name", default="normal",
-                        help="Select model. For MNIST and CIFAR, options are: 2-layer (MLP), normal (7-layer CNN), "
-                             "distilled (7-layer CNN with defensive distillation), brelu (7-layer CNN with Bounded "
-                             "ReLU).")
-    parser.add_argument("--activation", type=str, default="relu",
-                        choices=["relu", "tanh", "sigmoid", "elu", "softplus", "hard_sigmoid", "arctan"],
-                        help="activation functions")
+                        help="Select model. For MNIST and CIFAR, options are: normal (7-layer CNN), normal-dae (7-layer "
+                             "CNN after a separately trained denoising autoencoder, distilled (7-layer CNN with "
+                             "defensive distillation).")
     parser.add_argument("-N", "--Nsamps", type=int, default=1024,
                         help="number of samples per iterations")
     parser.add_argument("-i", "--Niters", type=int, default=500,
@@ -90,18 +90,13 @@ if __name__ == "__main__":
     target_classes = None
     target_type = args['target_type']
 
-    import tensorflow as tf
-    from setup_cifar import CIFAR
-    from setup_mnist import MNIST
-
     tf.set_random_seed(seed)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
         clever_estimator.sess = sess
         # returns the input tensor and output prediction vector
-        img, output = clever_estimator.load_model(dataset, model_name,
-                                                  activation=args['activation'], batch_size=args['batch_size'])
+        img, output = clever_estimator.load_model(dataset, model_name, batch_size=args['batch_size'])
         # load dataset
         datasets_loader = {"mnist": MNIST, "cifar": CIFAR}
         data = datasets_loader[dataset]()
@@ -148,9 +143,8 @@ if __name__ == "__main__":
                   "true_class = {}, target_class = {}, info = {}".format(total, i, true_ids[i], time.time() - timestart,
                                                                          true_label, target_label, img_info[i]))
             # save to sampling results to matlab ;)
-            mat_path = "{}/{}_{}/{}_{}_{}_{}_{}_{}_{}".format(save_path, dataset, model_name, Nsamp, Niters,
-                                                              true_ids[i], true_label, target_label,
-                                                              img_info[i], args['activation'])
+            mat_path = "{}/{}_{}/{}_{}_{}_{}_{}_{}".format(save_path, dataset, model_name, Nsamp, Niters,
+                                                              true_ids[i], true_label, target_label, img_info[i])
             save_dict = {'L2_max': L2_max, 'L1_max': L1_max, 'Li_max': Li_max, 'G2_max': G2_max, 'G1_max': G1_max,
                          'Gi_max': Gi_max, 'pred': pred, 'g_x0': g_x0, 'id': true_ids[i], 'true_label': true_label,
                          'target_label': target_label, 'info': img_info[i], 'args': args, 'path': mat_path}

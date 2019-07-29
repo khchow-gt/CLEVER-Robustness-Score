@@ -136,33 +136,3 @@ class CIFARModel:
 
     def predict(self, data):
         return self.model(data)
-
-
-class TwoLayerCIFARModel:
-    def __init__(self, restore=None, session=None, use_softmax=False):
-        self.num_channels = 3
-        self.image_size = 32
-        self.num_labels = 10
-
-        model = Sequential()
-        model.add(Flatten(input_shape=(32, 32, 3)))
-        model.add(Dense(1024))
-        model.add(Activation('softplus'))
-        model.add(Dense(10))
-        # output log probability, used for black-box attack
-        if use_softmax:
-            model.add(Activation('softmax'))
-        if restore:
-            model.load_weights(restore)
-
-        layer_outputs = []
-        for layer in model.layers:
-            if isinstance(layer, Conv2D) or isinstance(layer, Dense):
-                layer_outputs.append(K.function([model.layers[0].input], [layer.output]))
-
-        self.layer_outputs = layer_outputs
-        self.model = model
-
-    def predict(self, data):
-
-        return self.model(data)

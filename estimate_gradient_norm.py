@@ -49,16 +49,14 @@ class EstimateLipschitz(object):
 
         self.pool = Pool(processes=self.n_processes, initializer=initializer, initargs=(self.seed,))
 
-    def load_model(self, dataset="mnist", model_name="2-layer", activation="relu", model=None, batch_size=0,
-                   compute_slope=False):
+    def load_model(self, dataset="mnist", model_name="2-layer", model=None, batch_size=0):
         """
         model: if set to None, then load dataset with model_name. Otherwise use the model directly.
         dataset: mnist, cifar and imagenet. recommend to use mnist and cifar as a starting point.
         model_name: possible options are 2-layer, distilled, and normal
         """
-        from setup_cifar import CIFARModel, TwoLayerCIFARModel
-        from setup_mnist import MNISTModel, TwoLayerMNISTModel
-        from nlayer_model import NLayerModel
+        from setup_cifar import CIFARModel
+        from setup_mnist import MNISTModel, MNISTModelDAE
 
         # if set this to true, we will use the logit layer output instead of probability
         # the logit layer's gradients are usually larger and more stable
@@ -70,61 +68,22 @@ class EstimateLipschitz(object):
             print('Loading model...')
             if dataset == "mnist":
                 self.batch_size = 1024
-                if model_name == "2-layer":
-                    model = TwoLayerMNISTModel("models/mnist_2layer", self.sess, not output_logits)
-                elif model_name == "normal":
-                    if activation == "relu":
-                        model = MNISTModel("models/mnist", self.sess, not output_logits)
-                    else:
-                        print("actviation = {}".format(activation))
-                        model = MNISTModel("models/mnist_cnn_7layer_" + activation, self.sess, not output_logits,
-                                           activation=activation)
-                        time.sleep(5)
-
-                elif model_name == "brelu":
-                    model = MNISTModel("models/mnist_brelu", self.sess, not output_logits, use_brelu=True)
+                if model_name == "normal":
+                    model = MNISTModel("models/mnist", self.sess, not output_logits)
+                elif model_name == "normal-dae":
+                    model = MNISTModelDAE("dae/mnist", "models/mnist", self.sess, not output_logits)
                 elif model_name == "distilled":
                     model = MNISTModel("models/mnist-distilled-100", self.sess, not output_logits)
-                else:
-                    # specify model parameters as N,M,opts
-                    model_params = model_name.split(",")
-                    if len(model_params) < 3:
-                        raise (RuntimeError("incorrect model option" + model_name))
-                    numlayer = int(model_params[0])
-                    nhidden = int(model_params[1])
-                    modelfile = "models/mnist_{}layer_relu_{}_{}".format(numlayer, nhidden, model_params[2])
-                    print("loading", modelfile)
-                    model = NLayerModel([nhidden] * (numlayer - 1), modelfile)
             elif dataset == "cifar":
                 self.batch_size = 1024
-                if model_name == "2-layer":
-                    model = TwoLayerCIFARModel("models/cifar_2layer", self.sess, not output_logits)
-                elif model_name == "normal":
-                    if activation == "relu":
-                        model = CIFARModel("models/cifar", self.sess, not output_logits)
-                    else:
-                        model = CIFARModel("models/cifar_cnn_7layer_" + activation, self.sess, not output_logits,
-                                           activation=activation)
-                elif model_name == "brelu":
-                    model = CIFARModel("models/cifar_brelu", self.sess, not output_logits, use_brelu=True)
+                if model_name == "normal":
+                    model = CIFARModel("models/cifar", self.sess, not output_logits)
                 elif model_name == "distilled":
                     model = CIFARModel("models/cifar-distilled-100", self.sess, not output_logits)
-                else:
-                    # specify model parameters as N,M,opts
-                    model_params = model_name.split(",")
-                    if len(model_params) < 3:
-                        raise (RuntimeError("incorrect model option" + model_name))
-                    numlayer = int(model_params[0])
-                    nhidden = int(model_params[1])
-                    modelfile = "models/cifar_{}layer_relu_{}_{}".format(numlayer, nhidden, model_params[2])
-                    print("loading", modelfile)
-                    model = NLayerModel([nhidden] * (numlayer - 1), modelfile, image_size=32, image_channel=3)
-
             else:
                 raise (RuntimeError("dataset unknown"))
 
         self.model = model
-        self.compute_slope = compute_slope
         if batch_size != 0:
             self.batch_size = batch_size
 
