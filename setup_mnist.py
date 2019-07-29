@@ -20,6 +20,8 @@ from tensorflow.contrib.keras.api.keras.layers import Conv2D, MaxPooling2D
 from tensorflow.contrib.keras.api.keras.layers import Lambda
 from tensorflow.contrib.keras.api.keras.models import load_model
 from tensorflow.contrib.keras.api.keras import backend as K
+from tensorflow.contrib.keras.api.keras.layers import Conv2D, UpSampling2D, AveragePooling2D
+import keras.regularizers as regs
 
 
 def extract_data(filename, num_images):
@@ -56,6 +58,79 @@ class MNIST:
 
 
 class MNISTModel:
+    # def __init__(self, restore=None, session=None, use_softmax=False, use_brelu=False, activation="relu"):
+    #     def bounded_relu(x):
+    #         return K.relu(x, max_value=1)
+    #
+    #     if use_brelu:
+    #         activation = bounded_relu
+    #
+    #     print("inside MNISTModel: activation = {}".format(activation))
+    #
+    #     self.num_channels = 1
+    #     self.image_size = 28
+    #     self.num_labels = 10
+    #
+    #     model1 = Sequential()
+    #
+    #     model1.add(Lambda(lambda x_: x_ + 0.5, input_shape=(28, 28, 1)))
+    #
+    #     # Encoder
+    #     model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+    #     model1.add(AveragePooling2D((2, 2), padding="same"))
+    #     model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+    #
+    #     # Decoder
+    #     model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+    #     model1.add(UpSampling2D((2, 2)))
+    #     model1.add(Conv2D(3, (3, 3), activation="sigmoid", padding="same", activity_regularizer=regs.l2(1e-9)))
+    #     model1.add(Conv2D(1, (3, 3), activation='sigmoid', padding='same', activity_regularizer=regs.l2(1e-9)))
+    #
+    #     model1.add(Lambda(lambda x_: x_ - 0.5))
+    #
+    #     model1.load_weights("./dae/mnist")
+    #     model1.compile(loss='mean_squared_error', metrics=['mean_squared_error'], optimizer='adam')
+    #
+    #
+    #     model2 = Sequential()
+    #
+    #     model2.add(Conv2D(32, (3, 3), input_shape=(28, 28, 1)))
+    #     model2.add(Activation(activation))
+    #     model2.add(Conv2D(32, (3, 3)))
+    #     model2.add(Activation(activation))
+    #     model2.add(MaxPooling2D(pool_size=(2, 2)))
+    #
+    #     model2.add(Conv2D(64, (3, 3)))
+    #     model2.add(Activation(activation))
+    #     model2.add(Conv2D(64, (3, 3)))
+    #     model2.add(Activation(activation))
+    #     model2.add(MaxPooling2D(pool_size=(2, 2)))
+    #
+    #     model2.add(Flatten())
+    #     model2.add(Dense(200))
+    #     model2.add(Activation(activation))
+    #     model2.add(Dense(200))
+    #     model2.add(Activation(activation))
+    #     model2.add(Dense(10))
+    #     # output log probability, used for black-box attack
+    #     if use_softmax:
+    #         model2.add(Activation('softmax'))
+    #     if restore:
+    #         model2.load_weights(restore)
+    #
+    #     layer_outputs = []
+    #     for layer in model1.layers:
+    #         if isinstance(layer, Conv2D) or isinstance(layer, Dense):
+    #             layer_outputs.append(K.function([model1.layers[0].input], [layer.output]))
+    #     for layer in model2.layers:
+    #         if isinstance(layer, Conv2D) or isinstance(layer, Dense):
+    #             layer_outputs.append(K.function([model2.layers[0].input], [layer.output]))
+    #
+    #     model = Sequential()
+    #     model.add(model1)
+    #     model.add(model2)
+    #     self.model = model
+    #     self.layer_outputs = layer_outputs
     def __init__(self, restore=None, session=None, use_softmax=False, use_brelu=False, activation="relu"):
         def bounded_relu(x):
             return K.relu(x, max_value=1)
